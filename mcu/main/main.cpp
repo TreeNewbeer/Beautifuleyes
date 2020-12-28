@@ -37,22 +37,20 @@ extern "C" void app_main(void)
 {
     cJSON *root =  cJSON_CreateObject();
     cJSON *root_signal =  cJSON_CreateObject();
-    cJSON *root_signal_channel1 =  cJSON_CreateObject();
     cJSON_AddItemToObject(root, "type", cJSON_CreateString("channel"));
     cJSON_AddItemToObject(root, "signal", root_signal);
-    cJSON_AddItemToObject(root_signal, "channel1", root_signal_channel1);
 
     auto raw_num = cJSON_CreateNumber(6000);
 
-    cJSON_AddNumberToObject(root_signal_channel1, "id", 1);
-    cJSON_AddItemToObject(root_signal_channel1, "raw", raw_num);
-    cJSON_AddNumberToObject(root_signal_channel1, "smooth", 2000);
-    cJSON_AddNumberToObject(root_signal_channel1, "filter", 2000);
+    cJSON_AddNumberToObject(root_signal, "id", 1);
+    cJSON_AddItemToObject(root_signal, "raw", raw_num);
+    cJSON_AddNumberToObject(root_signal, "smooth", 2000);
+    cJSON_AddNumberToObject(root_signal, "filter", 2000);
 
     auto touchsense = new TouchSense(nullptr);
 
     while (1) {
-        vTaskDelay(pdMS_TO_TICKS(20));
+        vTaskDelay(pdMS_TO_TICKS(50));
         uint32_t sig_val = touchsense->GetChannelValue(TOUCH_PAD_NUM1);
         raw_num->valuedouble = sig_val;
         char *char_buf;

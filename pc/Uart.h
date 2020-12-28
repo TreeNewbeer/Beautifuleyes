@@ -8,14 +8,12 @@
 #include <QSerialPortInfo>
 #include <QTimer>
 #include <QThread>
+#include <QMutex>
 
 
 class FrameDecoder : public QObject {
 Q_OBJECT
 public:
-    FrameDecoder(const QString& frameHead, const QString& frameTail);
-    ~FrameDecoder();
-
     enum DeviceType {
         Channel = 0,
         Button = 1,
@@ -32,18 +30,19 @@ public:
 
     struct FrameData {
         DeviceType deviceType;
-
+        struct FrameSignal frameSignal;
     };
 
-public slots:
-    void AddFrame(const QByteArray& bytes);
+    FrameDecoder(const QString& frameHead, const QString& frameTail);
+    ~FrameDecoder();
+    int AddToFrameBuffer(const QByteArray& bytes);
+    int GetOneFrame(struct FrameData &frame);
 
 protected:
+    QMutex frameMutex;
     QByteArray head;
     QByteArray tail;
-
-private:
-    QVector<QJsonObject> frames_fifo;
+    QVector<struct FrameData*> frameBuffer;
 };
 
 
@@ -53,7 +52,6 @@ public:
     explicit Uart();
     bool uart_open(const QString &port_name, const int &baud_rate, const int &data_bit, const int &stop_bit);
     void uart_close();
-    QVector<QJsonObject> json_queue;
 
 private:
     QThread uart_thread;

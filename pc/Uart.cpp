@@ -22,18 +22,54 @@ FrameDecoder::~FrameDecoder() {
     qDebug() << "FrameDecoder delete";
 }
 
-void FrameDecoder::AddFrame(const QByteArray &bytes) {
+int FrameDecoder::AddToFrameBuffer(const QByteArray &bytes) {
     auto head_index = bytes.indexOf(head, 0);
     auto tail_index = bytes.indexOf(tail, 0);
+    if (head_index == -1 || tail_index == -1) {
+        return -1;
+    }
     QByteArray frame_bytes;
-    for (auto index = head_index; index < tail_index; index++) {
-        frame_bytes.append(bytes.at(index + head.size() - 1));
+    for (auto index = head_index + head.size(); index < tail_index; index++) {
+        frame_bytes.append(bytes.at(index));
     }
     QJsonObject json_raw = QJsonDocument::fromJson(frame_bytes).object();
-    if (!json_raw.isEmpty()) {
-        frames_fifo.push_front(json_raw);
+    if (json_raw.isEmpty()) {
+        return -2;
     }
+    auto json_signal_raw = json_raw.find("signal")->toObject();
+    int id = json_signal_raw.find("id")->toInt();
+    uint32_t raw_signal = json_signal_raw.find("raw")->toInt();
+    uint32_t smooth_signal = json_signal_raw.find("smooth")->toInt();
+    uint32_t benchmark_signal = json_signal_raw.find("filter")->toInt();
+    auto frame_body = new struct FrameData;
+    frame_body->deviceType = Channel;
+    frame_body->frameSignal.id = id;
+    frame_body->frameSignal.raw = raw_signal;
+    frame_body->frameSignal.smooth = smooth_signal;
+    frame_body->frameSignal.benchmark = benchmark_signal;
+    frameMutex.lock();
+    frameBuffer.push_front(frame_body);
+    frameMutex.unlock();
+    return 0;
 }
+
+int FrameDecoder::GetOneFrame(struct FrameData& frame) {
+    frameMutex.lock();
+    if (frameBuffer.isEmpty()) {
+        frameMutex.unlock();
+        return -1;
+    }
+    auto current_frame =  frameBuffer.last();
+    frame.deviceType = current_frame->deviceType;
+    frame.frameSignal.raw = current_frame->frameSignal.raw;
+    frame.frameSignal.smooth = current_frame->frameSignal.smooth;
+    frame.frameSignal.benchmark = current_frame->frameSignal.benchmark;
+    frameBuffer.pop_back();
+    delete current_frame;
+    frameMutex.unlock();
+    return 0;
+}
+
 
 Uart::Uart() : FrameDecoder("$*", "*$") {
     connect(&serial_port, &QSerialPort::readyRead, this, &Uart::uart_read_ready);
@@ -45,15 +81,9 @@ void Uart::uart_read_ready() {
     uart_data_buffer.append(serial_port.readAll());
     auto start_index = uart_data_buffer.indexOf("$*", 0);
     auto end_index = uart_data_buffer.indexOf("*$", 0);
-    int frame_length = end_index - start_index;
-    int frame_head_length = qstrlen("*$");
     if (start_index != -1 && end_index != -1) {
-        uart_data_buffer.remove(end_index, uart_data_buffer.length() - frame_length);
-        uart_data_buffer.remove(start_index, frame_head_length);
-        QJsonObject json;
-        json = QJsonDocument::fromJson(uart_data_buffer).object();
-        if (!json.isEmpty()) {
-            json_queue.push_front(json);
+        if (AddToFrameBuffer(uart_data_buffer) == 0) {
+
         }
         uart_data_buffer.clear();
     }
