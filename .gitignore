@@ -1,0 +1,8 @@
+mcu/.idea
+mcu/cmake-*
+mcu/sdkconfig*
+mcu/build
+
+pc/.idea
+pc/cmake-*
+pc/CMakeLists.txt.*
