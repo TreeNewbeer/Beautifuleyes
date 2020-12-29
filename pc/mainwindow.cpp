@@ -1,6 +1,5 @@
 #include "mainwindow.h"
-//#include "ui_mainwindow.h"
-#include "cmake-build-debug/qt_uart_cmake_autogen/include/cmake-build-debug/qt_uart_cmake_autogen/include/ui_mainwindow.h"
+#include "ui_mainwindow.h"
 
 #include <QtDebug>
 
@@ -9,6 +8,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    uart = new Uart();
     chart = new QChart();
     line_series = new QLineSeries();
     chart->legend()->setVisible(true);
@@ -28,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    delete uart;
     delete ui;
 }
 
@@ -39,13 +40,13 @@ void MainWindow::on_button_state_clicked()
         int baudrate = ui->combo_baud->currentText().toInt();
         QSerialPort::StopBits stopbit = (QSerialPort::StopBits)ui->combo_stopbits->currentText().toInt();
         QSerialPort::DataBits databit = (QSerialPort::DataBits)ui->combo_databits->currentText().toInt();
-        if (!uart.uart_open(portname, baudrate, stopbit, databit)) {
+        if (!uart->uart_open(portname, baudrate, stopbit, databit)) {
             ui->button_state->setText("Start");
             qDebug() << "Open port failed" << Qt::endl;
         }
     } else {
         ui->button_state->setText("Start");  //stop
-        uart.uart_close();
+        uart->uart_close();
     }
 }
 
@@ -64,7 +65,7 @@ void MainWindow::timer_callback() {
 
 void MainWindow::data_update() {
     struct FrameDecoder::FrameData frameData{};
-    if (uart.GetOneFrame(frameData) != 0) {
+    if (uart->GetOneFrame(frameData) != 0) {
         return;
     }
     static auto x = 0;

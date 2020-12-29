@@ -31,7 +31,7 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
-    Uart uart;
+    Uart *uart;
     QTimer timer_handler;
     QTimer data_update_timer;
     QLineSeries *line_series;

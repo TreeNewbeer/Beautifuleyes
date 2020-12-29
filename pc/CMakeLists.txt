@@ -32,10 +32,10 @@ else()
             ${PROJECT_SOURCES}
         )
     else()
-        add_executable(qt_uart_cmake
+        add_executable(pc
             ${PROJECT_SOURCES}
         )
     endif()
 endif()
 
-target_link_libraries(qt_uart_cmake PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::SerialPort  Qt${QT_VERSION_MAJOR}::Charts)
+target_link_libraries(pc PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::SerialPort  Qt${QT_VERSION_MAJOR}::Charts)

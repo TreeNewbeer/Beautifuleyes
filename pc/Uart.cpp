@@ -37,6 +37,9 @@ int FrameDecoder::AddToFrameBuffer(const QByteArray &bytes) {
         return -2;
     }
     auto json_signal_raw = json_raw.find("signal")->toObject();
+    if (json_signal_raw.isEmpty()) {
+        return -2;
+    }
     int id = json_signal_raw.find("id")->toInt();
     uint32_t raw_signal = json_signal_raw.find("raw")->toInt();
     uint32_t smooth_signal = json_signal_raw.find("smooth")->toInt();
@@ -50,7 +53,7 @@ int FrameDecoder::AddToFrameBuffer(const QByteArray &bytes) {
     frameMutex.lock();
     frameBuffer.push_front(frame_body);
     frameMutex.unlock();
-    return 0;
+    return (tail_index - (head_index + head.size()));
 }
 
 int FrameDecoder::GetOneFrame(struct FrameData& frame) {
@@ -72,32 +75,52 @@ int FrameDecoder::GetOneFrame(struct FrameData& frame) {
 
 
 Uart::Uart() : FrameDecoder("$*", "*$") {
-    connect(&serial_port, &QSerialPort::readyRead, this, &Uart::uart_read_ready);
-    moveToThread(&uart_thread);
-    uart_thread.start();
+    moveToThread(&uartThread);
+    uartThread.start();
+}
+
+Uart::~Uart() {
+
 }
 
 void Uart::uart_read_ready() {
-    uart_data_buffer.append(serial_port.readAll());
-    auto start_index = uart_data_buffer.indexOf("$*", 0);
-    auto end_index = uart_data_buffer.indexOf("*$", 0);
-    if (start_index != -1 && end_index != -1) {
-        if (AddToFrameBuffer(uart_data_buffer) == 0) {
-
+    int bytes = serialPort.bytesAvailable();
+    if (bytes <= 0) {
+        return;
+    }
+    uartBuffer.append(serialPort.read(bytes));
+    uartBuffer.replace("\r\n", "");
+    while (uartBuffer.contains(head) && uartBuffer.contains(tail)) {
+        int headIndex = uartBuffer.indexOf(head);
+        int tailIndex = uartBuffer.indexOf(tail);
+        if (headIndex >= tailIndex) {
+            uartBuffer.remove(0, headIndex);
         }
-        uart_data_buffer.clear();
+        int process_length = AddToFrameBuffer(uartBuffer);
+        if (process_length >= 0) {
+            uartBuffer.remove(0, process_length + head.size() + tail.size());
+        } else if (process_length == -2) {
+            uartBuffer.clear();
+        }
     }
 }
 
 bool Uart::uart_open(const QString &port_name, const int &baud_rate, const int &data_bit, const int &stop_bit) {
-    serial_port.setPortName(port_name);
-    serial_port.setBaudRate(baud_rate);
-    serial_port.setDataBits((QSerialPort::DataBits)data_bit);
-    serial_port.setStopBits((QSerialPort::StopBits)stop_bit);
+    connect(&serialPort, &QSerialPort::readyRead, this, &Uart::uart_read_ready, Qt::DirectConnection);
+    serialPort.setPortName(port_name);
+    serialPort.setBaudRate(baud_rate);
+    serialPort.setDataBits((QSerialPort::DataBits)data_bit);
+    serialPort.setStopBits((QSerialPort::StopBits)stop_bit);
     qDebug() << port_name << baud_rate  << Qt::endl;
-    return serial_port.open(QIODevice::ReadOnly);
+    bool ret = serialPort.open(QIODevice::ReadOnly);
+    return ret;
 }
 
 void Uart::uart_close() {
-    serial_port.close();
+    disconnect(&serialPort, &QSerialPort::readyRead, this, &Uart::uart_read_ready);
+    serialPort.close();
+    uartBuffer.clear();
+    frameMutex.lock();
+    frameBuffer.clear();
+    frameMutex.unlock();
 }

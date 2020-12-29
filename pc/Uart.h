@@ -50,13 +50,14 @@ class Uart : public FrameDecoder {
     Q_OBJECT
 public:
     explicit Uart();
+    ~Uart();
     bool uart_open(const QString &port_name, const int &baud_rate, const int &data_bit, const int &stop_bit);
     void uart_close();
 
 private:
-    QThread uart_thread;
-    QSerialPort serial_port;
-    QByteArray uart_data_buffer;
+    QThread uartThread;
+    QSerialPort serialPort;
+    QByteArray uartBuffer;
 
 private slots:
     void uart_read_ready();
