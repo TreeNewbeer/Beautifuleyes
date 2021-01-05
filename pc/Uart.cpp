@@ -36,16 +36,17 @@ int FrameDecoder::AddToFrameBuffer(const QByteArray &bytes) {
     if (json_raw.isEmpty()) {
         return -2;
     }
+    auto deviceType = json_raw.find("type")->toInt();
     auto json_signal_raw = json_raw.find("signal")->toObject();
     if (json_signal_raw.isEmpty()) {
         return -2;
     }
     int id = json_signal_raw.find("id")->toInt();
     uint32_t raw_signal = json_signal_raw.find("raw")->toInt();
-    uint32_t smooth_signal = json_signal_raw.find("smooth")->toInt();
-    uint32_t benchmark_signal = json_signal_raw.find("filter")->toInt();
+    uint32_t smooth_signal = json_signal_raw.find("smo")->toInt();
+    uint32_t benchmark_signal = json_signal_raw.find("bcm")->toInt();
     auto frame_body = new struct FrameData;
-    frame_body->deviceType = Channel;
+    frame_body->deviceType = static_cast<DeviceType>(deviceType);
     frame_body->frameSignal.id = id;
     frame_body->frameSignal.raw = raw_signal;
     frame_body->frameSignal.smooth = smooth_signal;
