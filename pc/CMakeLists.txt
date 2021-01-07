@@ -34,7 +34,7 @@ else()
     else()
         add_executable(pc
             ${PROJECT_SOURCES}
-        )
+                SignalChart.cpp SignalChart.h)
     endif()
 endif()
 

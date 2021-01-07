@@ -2,11 +2,9 @@
 #define MAINWINDOW_H
 
 #include "Uart.h"
+#include "SignalChart.h"
 
 #include <QMainWindow>
-
-//#include <QtCharts/QChartView>
-//#include <QtCharts/QLineSeries>
 #include <QtCharts>
 
 QT_BEGIN_NAMESPACE
@@ -34,8 +32,10 @@ private:
     Uart *uart;
     QTimer timer_handler;
     QTimer data_update_timer;
-    QLineSeries *line_series;
-    QChart *chart;
-    QChartView *chart_view;
+
+    SignalChart *rawChart;
+    SignalChart *rawDiffChart;
+    SignalChart *bcmChart;
+    SignalChart *bcmDiffChart;
 };
 #endif // MAINWINDOW_H
