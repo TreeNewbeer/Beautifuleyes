@@ -7,11 +7,10 @@
 SignalChart::SignalChart(QWidget *parent, const QString& chartTitle, int chartPointSize) {
     pointsSize = chartPointSize;
     signalChart = new QChart();
-    signalLine = new QLineSeries();
+    signalLabel = new QLabel();
+    signalLabel->hide();
     signalChart->legend()->setVisible(true);
-    signalChart->setTheme(QChart::ChartThemeDark);
-    signalChart->addSeries(signalLine);
-    signalChart->createDefaultAxes();
+    signalChart->setTheme(QChart::ChartThemeBlueIcy);
     signalChart->setTitle(chartTitle);
     signalChart->setAnimationOptions(QChart::NoAnimation);
     signalChartView = new QChartView(signalChart, parent);
@@ -19,30 +18,74 @@ SignalChart::SignalChart(QWidget *parent, const QString& chartTitle, int chartPo
 }
 
 SignalChart::~SignalChart() {
-    delete signalLine;
+    for (const auto& signalLine : signalLines) {
+        if (signalLine == nullptr) {
+            continue;
+        }
+        delete signalLine;
+    }
+    delete signalLabel;
     delete signalChart;
     delete signalChartView;
 }
 
-void SignalChart::SignalAddPoint(qreal x, qreal y) {
+void SignalChart::AddPoint(int channel, qreal x, qreal y) {
+    auto signalLine = signalLines[channel - 1];
     if (signalLine->points().size() >= pointsSize) {
         signalLine->remove(0);
     }
     signalLine->append(x, y);
-    QVector<qreal> x_vec;
-    QVector<qreal> y_vec;
-    for (const auto& point : signalLine->points()) {
-        x_vec.append(point.x());
-        y_vec.append(point.y());
-    }
-    auto x_min = *std::min_element(x_vec.begin(), x_vec.end());
-    auto x_max = *std::max_element(x_vec.begin(), x_vec.end());
-    auto y_min = *std::min_element(y_vec.begin(), y_vec.end());
-    auto y_max = *std::max_element(y_vec.begin(), y_vec.end());
-    signalChart->axisX()->setRange(x_min - (x_max - x_min) / 10, x_max + (x_max - x_min) / 10);
-    if (y_min != y_max) {
-        signalChart->axisY()->setRange(y_min - (y_max - y_min) / 10, y_max + (y_max - y_min) / 10);
+}
+
+void SignalChart::ShowPointInfo(const QPointF &pointPos, bool pointState) {
+    if (pointState && QGuiApplication::keyboardModifiers() == Qt::ControlModifier) {
+        signalLabel->setText(QString::asprintf("%f", pointPos.y()));
+        signalLabel->move(QCursor::pos().x(), QCursor::pos().y());
+        signalLabel->show();
     } else {
-        signalChart->axisY()->setRange(y_min - y_min / 10, y_min + y_min / 10);
+        signalLabel->hide();
+    }
+}
+
+int SignalChart::AddLine(int channel) {
+    if (channel < 1 || channel > 14) {
+        qDebug() << "channel input error";
+        return -1;
+    }
+    signalLines[channel - 1] = new QLineSeries();
+    auto signalLine = signalLines[channel - 1];
+    signalChart->addSeries(signalLine);
+    signalChart->createDefaultAxes();
+    connect(signalLine, &QScatterSeries::hovered, this, &SignalChart::ShowPointInfo);
+    return 0;
+}
+
+void SignalChart::UpdateAxis() {
+    qreal yMax = 0;
+    qreal yMin = 0;
+    qreal xMax = 0;
+    qreal xMin = 0;
+    for (const auto& signalLine : signalLines) {
+        if (signalLine == nullptr) {
+            continue;
+        }
+        for (const auto& point : signalLine->points()) {
+            if (xMax == 0 && xMin == 0) {
+                xMin = point.x();
+                xMax = point.x();
+                yMin = point.y();
+                yMax = point.y();
+            }
+            xMin = qMin(xMin, point.x());
+            xMax = qMax(xMax, point.x());
+            yMin = qMin(yMin, point.y());
+            yMax = qMax(yMax, point.y());
+        }
+    }
+    signalChart->axisX()->setRange(xMin - qAbs(xMax - xMin) / 10, xMax + qAbs(xMax - xMin) / 10);
+    if (yMax == yMin) {
+        signalChart->axisY()->setRange(yMin - qAbs(yMin) / 10, yMax + qAbs(yMax) / 10);
+    } else {
+        signalChart->axisY()->setRange(yMin - qAbs(yMax - yMin) / 10, yMax + qAbs(yMax - yMin) / 10);
     }
 }

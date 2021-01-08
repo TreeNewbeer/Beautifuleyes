@@ -13,13 +13,17 @@ MainWindow::MainWindow(QWidget *parent)
     uart = new Uart();
 
     rawChart = new SignalChart(ui->rawFrame, "Raw signal");
+    rawChart->AddLine(1);
     ui->rawFrameLayout->addWidget(rawChart->signalChartView);
     rawDiffChart = new SignalChart(ui->rawFrame, "Raw signal Diff rate");
+    rawDiffChart->AddLine(1);
     ui->rawFrameLayout->addWidget(rawDiffChart->signalChartView);
 
     bcmChart = new SignalChart(ui->bcmFrame, "Benchmark signal");
+    bcmChart->AddLine(1);
     ui->bcmFrameLayout->addWidget(bcmChart->signalChartView);
     bcmDiffChart = new SignalChart(ui->bcmFrame, "Benchmark signal Diff rate");
+    bcmDiffChart->AddLine(1);
     ui->bcmFrameLayout->addWidget(bcmDiffChart->signalChartView);
 
     timer_handler.start(100);
@@ -34,30 +38,30 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::on_button_state_clicked()
+void MainWindow::on_startButton_clicked()
 {
-    if (ui->button_state->text() == (QString)"Start") {
-        ui->button_state->setText("Stop");  //start
-        QString portname = ui->combo_port->currentText();
-        int baudrate = ui->combo_baud->currentText().toInt();
-        QSerialPort::StopBits stopbit = (QSerialPort::StopBits)ui->combo_stopbits->currentText().toInt();
-        QSerialPort::DataBits databit = (QSerialPort::DataBits)ui->combo_databits->currentText().toInt();
-        if (!uart->uart_open(portname, baudrate, stopbit, databit)) {
-            ui->button_state->setText("Start");
+    if (ui->startButton->text() == (QString)"Start") {
+        ui->startButton->setText("Stop");  //start
+        ScanWidgetsInfos();
+        if (!uart->uart_open(widgetsInfos.uartPortName, widgetsInfos.uartBaudRate, widgetsInfos.uartDataBit, widgetsInfos.uartStopBit)) {
+            ui->startButton->setText("Start");
             qDebug() << "Open port failed" << Qt::endl;
+        } else {
+            SetWidgetsDisabled(true);
         }
     } else {
-        ui->button_state->setText("Start");  //stop
+        ui->startButton->setText("Start");  //stop
         uart->uart_close();
+        SetWidgetsDisabled(false);
     }
 }
 
 void MainWindow::timer_callback() {
-    auto port_infos = QSerialPortInfo::availablePorts();
-    if (ui->combo_port->count() != port_infos.size()) {
-        ui->combo_port->clear();
-        for (auto port_info : port_infos) {
-            ui->combo_port->addItem(port_info.portName());
+    auto portInfos = QSerialPortInfo::availablePorts();
+    if (ui->portCombo->count() != portInfos.size()) {
+        ui->portCombo->clear();
+        for (const auto& portInfo : portInfos) {
+            ui->portCombo->addItem(portInfo.portName());
         }
     }
 }
@@ -86,9 +90,44 @@ void MainWindow::data_update() {
         if (raw_base == 0) {
             return;
         }
-        rawChart->SignalAddPoint(x, raw_y);
-        rawDiffChart->SignalAddPoint(x, (raw_y - raw_base) / raw_base);
-        bcmChart->SignalAddPoint(x, bcm_y);
-        bcmDiffChart->SignalAddPoint(x, (bcm_y - bcm_base) / bcm_base);
+        rawChart->AddPoint(1, x, raw_y);
+        rawDiffChart->AddPoint(1, x, (raw_y - raw_base) / raw_base);
+        bcmChart->AddPoint(1, x, bcm_y);
+        bcmDiffChart->AddPoint(1, x, (bcm_y - bcm_base) / bcm_base);
+
+        rawChart->UpdateAxis();
+        rawDiffChart->UpdateAxis();
+        bcmChart->UpdateAxis();
+        bcmDiffChart->UpdateAxis();
+    }
+}
+
+void MainWindow::ScanWidgetsInfos() {
+    widgetsInfos.uartPortName = ui->portCombo->currentText();
+    widgetsInfos.uartBaudRate = ui->baudCombo->currentText().toInt();
+    widgetsInfos.uartDataBit = ui->databitsCombo->currentText().toInt();
+    widgetsInfos.uartStopBit = ui->stopbitsCombo->currentText().toInt();
+
+    for (int index = 0; index < ui->channelLayout->count(); index++) {
+        auto widget = ui->channelLayout->itemAt(index)->widget();
+        auto objectName = widget->objectName();
+        if (objectName.contains("channelBox")) {
+            auto arrayIndexString = objectName;
+            auto arrayIndex = arrayIndexString.replace("channelBox", "").toInt();
+            auto channelBox = dynamic_cast<QCheckBox *>(widget);
+            widgetsInfos.channelBoxStates[arrayIndex - 1] = channelBox->isChecked();
+        }
+    }
+}
+
+void MainWindow::SetWidgetsDisabled(bool Disabled) {
+    for (int index = 0; index < ui->channelLayout->count(); index++) {
+        auto widget = ui->channelLayout->itemAt(index)->widget();
+        widget->setDisabled(Disabled);
+    }
+
+    for (int index = 0; index < ui->uartconfigLayout->count(); index++) {
+        auto widget = ui->uartconfigLayout->itemAt(index)->widget();
+        widget->setDisabled(Disabled);
     }
 }

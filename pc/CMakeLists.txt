@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(qt_uart_cmake LANGUAGES CXX)
+project(pc LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -23,12 +23,12 @@ set(PROJECT_SOURCES
         Uart.cpp Uart.h)
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(qt_uart_cmake
+    qt_add_executable(pc
         ${PROJECT_SOURCES}
     )
 else()
     if(ANDROID)
-        add_library(qt_uart_cmake SHARED
+        add_library(pc SHARED
             ${PROJECT_SOURCES}
         )
     else()
@@ -38,4 +38,5 @@ else()
     endif()
 endif()
 
+include_directories(cmake-*/pc_autogen/include)
 target_link_libraries(pc PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::SerialPort  Qt${QT_VERSION_MAJOR}::Charts)
