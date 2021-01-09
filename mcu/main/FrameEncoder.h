@@ -35,7 +35,7 @@ public:
     explicit FrameEncoder(const std::string& head = "$*", const std::string& tail = "*$");
     ~FrameEncoder();
     int AddToFrameBuffer(const FrameData& body);
-    void SendOneFrame();
+    int GetOneFrame(std::string& frameString);
 
 protected:
     SemaphoreHandle_t frameMutex;

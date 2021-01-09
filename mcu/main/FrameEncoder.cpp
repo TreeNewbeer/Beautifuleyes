@@ -39,16 +39,18 @@ int FrameEncoder::AddToFrameBuffer(const FrameEncoder::FrameData &body) {
     return jsonString->size();
 }
 
-void FrameEncoder::SendOneFrame() {
+int FrameEncoder::GetOneFrame(std::string &frameString) {
     xSemaphoreTake(frameMutex, portMAX_DELAY);
     auto jsonString = frameBuffer.front();
     if (!frameBuffer.empty()) {
         frameBuffer.pop();
     } else {
         xSemaphoreGive(frameMutex);
-        return;
+        return -1;
     }
     xSemaphoreGive(frameMutex);
-    std::cout << *jsonString << std::endl;
+    std::copy(jsonString->cbegin(), jsonString->cend(), std::back_inserter(frameString));
     delete jsonString;
+    return 0;
 }
+
