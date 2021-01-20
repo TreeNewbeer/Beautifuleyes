@@ -40,12 +40,12 @@ void SerialPort::uartReceiveTask(void *arg)
     auto* This = static_cast<SerialPort*>(arg);
     while (true) {
         uint8_t readBuffer[This->uartBlockSize];
-        int len = uart_read_bytes(UART_NUM_0, readBuffer, This->uartBlockSize, pdTICKS_TO_MS(1));
-        if (len <= 0) {
+        int readSize = uart_read_bytes(UART_NUM_0, readBuffer, This->uartBlockSize, pdTICKS_TO_MS(1));
+        if (readSize <= 0) {
             continue;
         }
         xSemaphoreTake(This->receiveMutex, portMAX_DELAY);
-        std::copy(readBuffer, readBuffer + This->uartBlockSize, std::back_inserter(This->receiveBuffer));
+        std::copy(readBuffer, readBuffer + readSize, std::back_inserter(This->receiveBuffer));
         xSemaphoreGive(This->receiveMutex);
     }
 }

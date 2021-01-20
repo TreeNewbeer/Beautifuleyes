@@ -23,8 +23,22 @@ public:
     template<typename Container>
     void TransmitMessage(const Container& container) {
         xSemaphoreTake(transmitMutex, portMAX_DELAY);
-        std::copy(container.begin(), container.end(), std::back_inserter(transmitBuffer));
+        std::copy(container.cbegin(), container.cend(), std::back_inserter(transmitBuffer));
         xSemaphoreGive(transmitMutex);
+    }
+
+    template<typename Container>
+    int ReceiveMessage(Container& container) {
+        xSemaphoreTake(receiveMutex, portMAX_DELAY);
+        if (receiveBuffer.empty()) {
+            xSemaphoreGive(receiveMutex);
+            return -1;
+        }
+        std::copy(receiveBuffer.cbegin(), receiveBuffer.cend(), std::back_inserter(container));
+        int copySize = receiveBuffer.size();
+        receiveBuffer.clear();
+        xSemaphoreGive(receiveMutex);
+        return copySize;
     }
 
 private:
