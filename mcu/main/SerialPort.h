@@ -2,7 +2,7 @@
 // Created by genius on 1/10/21.
 //
 
-#ifndef MCU_FIRMWARE_UART_H
+#ifndef MCU_FIRMWARE_SERIALPORT_H
 #define MCU_FIRMWARE_SERIALPORT_H
 
 #include <iostream>
@@ -21,14 +21,16 @@ public:
     ~SerialPort();
 
     template<typename Container>
-    void TransmitMessage(const Container& container) {
+    void TransmitMessage(const Container& container)
+    {
         xSemaphoreTake(transmitMutex, portMAX_DELAY);
         std::copy(container.cbegin(), container.cend(), std::back_inserter(transmitBuffer));
         xSemaphoreGive(transmitMutex);
     }
 
     template<typename Container>
-    int ReceiveMessage(Container& container) {
+    int ReceiveMessage(Container& container)
+    {
         xSemaphoreTake(receiveMutex, portMAX_DELAY);
         if (receiveBuffer.empty()) {
             xSemaphoreGive(receiveMutex);

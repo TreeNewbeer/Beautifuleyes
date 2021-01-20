@@ -16,7 +16,7 @@ extern "C" void app_main(void)
     };
     auto touchButton = touchElement->CreateButton(buttonConfig);
     touch_element_start();
-    while (1) {
+    while (true) {
         FrameEncoder::FrameData frameData{};
         frameData.deviceType = FrameEncoder::Channel;
         frameData.frameSignal.id = 1;

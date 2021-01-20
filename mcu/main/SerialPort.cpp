@@ -5,7 +5,8 @@
 #include <iostream>
 #include "SerialPort.h"
 
-SerialPort::SerialPort(int uartPort, int baudRate, gpio_num_t txPin, gpio_num_t rxPin, int txBufferSize, int rxBufferSize) {
+SerialPort::SerialPort(int uartPort, int baudRate, gpio_num_t txPin, gpio_num_t rxPin, int txBufferSize, int rxBufferSize)
+{
     this->uartPort = uartPort;
     uart_config_t uartConfig = {};
     uartConfig.baud_rate = baudRate;
@@ -33,6 +34,11 @@ SerialPort::SerialPort(int uartPort, int baudRate, gpio_num_t txPin, gpio_num_t 
     } catch (const std::runtime_error& e) {
         std::cout << e.what() << std::endl;
     }
+}
+
+SerialPort::~SerialPort()
+{
+    uart_driver_delete(uartPort);
 }
 
 void SerialPort::uartReceiveTask(void *arg)
