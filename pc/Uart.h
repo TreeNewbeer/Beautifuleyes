@@ -6,9 +6,42 @@
 #define QT_UART_CMAKE_UART_H
 #include <QSerialPort>
 #include <QSerialPortInfo>
+#include <QJsonValue>
 #include <QTimer>
 #include <QThread>
 #include <QMutex>
+
+class FrameEncoder {
+public:
+    enum DeviceType {
+        Channel = 0,
+        Button = 1,
+        Slider = 2,
+        Matrix = 3,
+    };
+
+    enum ControlCommand {
+        Start,
+        Stop
+    };
+
+    struct FrameBody {
+        DeviceType deviceType;
+        QVector<QJsonValue> channels;
+        QJsonValue payloadTime;
+        ControlCommand command;
+    };
+    explicit FrameEncoder(const QString& frameHead = "$*", const QString& frameTail = "$*");
+    ~FrameEncoder();
+    int AddToFrameBuffer(const FrameBody& frameBody);
+    int GetOneFrame(QString& frameString);
+
+private:
+    QString frameHead;
+    QString frameTail;
+    QMutex frameMutex;
+    QVector<QString*> frameBuffer;
+};
 
 
 class FrameDecoder : public QObject {
@@ -55,6 +88,7 @@ public:
     void uart_close();
 
 private:
+    FrameEncoder frameEncoder;
     QThread uartThread;
     QSerialPort serialPort;
     QByteArray uartBuffer;

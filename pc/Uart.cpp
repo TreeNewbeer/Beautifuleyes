@@ -6,7 +6,50 @@
 #include <QDebug>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <iostream>
+
+FrameEncoder::FrameEncoder(const QString& frameHead, const QString& frameTail)
+{
+    this->frameHead = frameHead;
+    this->frameTail = frameTail;
+}
+
+FrameEncoder::~FrameEncoder()
+{
+    qDebug() << "FrameEncoder delete";
+}
+
+int FrameEncoder::AddToFrameBuffer(const FrameEncoder::FrameBody &frameBody)
+{
+    QJsonObject jsonRoot;
+    jsonRoot["type"] = frameBody.deviceType;
+    QJsonArray channelArray;
+    std::copy(frameBody.channels.cbegin(), frameBody.channels.cend(), std::back_inserter(channelArray));
+    jsonRoot["channels"] = channelArray;
+    jsonRoot["time"] = frameBody.payloadTime;
+    jsonRoot["cmd"] = frameBody.command;
+    QJsonDocument jsonDocument(jsonRoot);
+    auto jsonString = new QString(jsonDocument.toJson(QJsonDocument::Compact));
+    frameMutex.lock();
+    frameBuffer.push_front(jsonString);
+    frameMutex.unlock();
+    return 0;
+}
+
+int FrameEncoder::GetOneFrame(QString &frameString)
+{
+    frameMutex.lock();
+    if (frameBuffer.isEmpty()) {
+        frameMutex.unlock();
+        return -1;
+    }
+    auto framePtr = frameBuffer.back();
+    std::copy(framePtr->cbegin(), framePtr->cend(), std::back_inserter(frameString));
+    frameBuffer.pop_back();
+    frameMutex.unlock();
+    return 0;
+}
 
 FrameDecoder::FrameDecoder(const QString& frameHead, const QString& frameTail) {
     qDebug() << "FrameDecoder create";

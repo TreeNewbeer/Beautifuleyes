@@ -60,10 +60,10 @@ int FrameDecoder::AddToFrameBuffer(const std::vector<uint8_t> &bytes)
     } catch (const std::runtime_error& error) {
         std::cout << "Parse error: " << error.what() << std::endl;
         std::cout << byteString << std::endl;
-        if (jsonRoot != NULL) cJSON_free(jsonRoot);
-        if (jsonType != NULL) cJSON_free(jsonType);
-        if (jsonChannels != NULL) cJSON_free(jsonChannels);
-        if (jsonTime != NULL) cJSON_free(jsonTime);
+        if (jsonRoot != NULL) cJSON_Delete(jsonRoot);
+        if (jsonType != NULL) cJSON_Delete(jsonType);
+        if (jsonChannels != NULL) cJSON_Delete(jsonChannels);
+        if (jsonTime != NULL) cJSON_Delete(jsonTime);
         return -2; //Parse error
     }
     auto frameBody = new struct FrameBody;
@@ -77,11 +77,11 @@ int FrameDecoder::AddToFrameBuffer(const std::vector<uint8_t> &bytes)
     xSemaphoreTake(frameMutex, portMAX_DELAY);
     frameBuffer.insert(frameBuffer.begin(), frameBody);
     xSemaphoreGive(frameMutex);
-    cJSON_free(jsonRoot);
-    cJSON_free(jsonType);
-    cJSON_free(jsonChannels);
-    cJSON_free(jsonTime);
-    cJSON_free(jsonCommand);
+    cJSON_Delete(jsonRoot);
+    cJSON_Delete(jsonType);
+    cJSON_Delete(jsonChannels);
+    cJSON_Delete(jsonTime);
+    cJSON_Delete(jsonCommand);
     return bytes.size();
 }
 
