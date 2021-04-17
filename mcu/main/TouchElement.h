@@ -24,6 +24,7 @@ public:
     void SetDispatchMethod(touch_elem_dispatch_t dispatch_method);
     void RegisterCallback(touch_button_callback_t handler);
     uint32_t GetSignalValue(const te_signal_t& signalType = TE_SIGNAL_RAW);
+    touch_pad_t GetChannelNum();
 
 private:
     touch_button_handle_t handle = nullptr;

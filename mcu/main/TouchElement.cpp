@@ -78,6 +78,11 @@ uint32_t TouchButton::GetSignalValue(const te_signal_t& signalType) {
     }
 }
 
+touch_pad_t TouchButton::GetChannelNum()
+{
+    return channel;
+}
+
 TouchSlider::TouchSlider(const touch_slider_config_t& config) {
     try {
         esp_err_t ret = touch_slider_create(&config, &handle);

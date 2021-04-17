@@ -30,6 +30,7 @@ FrameDecoder::~FrameDecoder()
     vSemaphoreDelete(frameMutex);
 }
 
+//$*{"type":1,"channels":[1,2,3,4],"time":50,"cmd":1}*$
 int FrameDecoder::AddToFrameBuffer(const std::vector<uint8_t> &bytes)
 {
     auto headIter = std::search(bytes.cbegin(), bytes.cend(), head.cbegin(), head.cend());
@@ -61,9 +62,6 @@ int FrameDecoder::AddToFrameBuffer(const std::vector<uint8_t> &bytes)
         std::cout << "Parse error: " << error.what() << std::endl;
         std::cout << byteString << std::endl;
         if (jsonRoot != NULL) cJSON_Delete(jsonRoot);
-        if (jsonType != NULL) cJSON_Delete(jsonType);
-        if (jsonChannels != NULL) cJSON_Delete(jsonChannels);
-        if (jsonTime != NULL) cJSON_Delete(jsonTime);
         return -2; //Parse error
     }
     auto frameBody = new struct FrameBody;
@@ -78,10 +76,6 @@ int FrameDecoder::AddToFrameBuffer(const std::vector<uint8_t> &bytes)
     frameBuffer.insert(frameBuffer.begin(), frameBody);
     xSemaphoreGive(frameMutex);
     cJSON_Delete(jsonRoot);
-    cJSON_Delete(jsonType);
-    cJSON_Delete(jsonChannels);
-    cJSON_Delete(jsonTime);
-    cJSON_Delete(jsonCommand);
     return bytes.size();
 }
 
