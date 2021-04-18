@@ -43,15 +43,47 @@ void MainWindow::on_startButton_clicked()
     if (ui->startButton->text() == (QString)"Start") {
         ui->startButton->setText("Stop");  //start
         ScanWidgetsInfos();
-        if (!uart->uart_open(widgetsInfos.uartPortName, widgetsInfos.uartBaudRate, widgetsInfos.uartDataBit, widgetsInfos.uartStopBit)) {
+        if (!uart->UartOpen(widgetsInfos.uartPortName, widgetsInfos.uartBaudRate, widgetsInfos.uartDataBit,
+                            widgetsInfos.uartStopBit)) {
             ui->startButton->setText("Start");
             qDebug() << "Open port failed" << Qt::endl;
         } else {
             SetWidgetsDisabled(true);
+            FrameEncoder frameEncoder("$*", "*$");
+            FrameEncoder::FrameBody frameBody {};
+            frameBody.command = FrameEncoder::Start;
+            frameBody.deviceType = FrameEncoder::Channel;
+            frameBody.payloadTime = 50;
+            for (int i = 0; i < widgetsInfos.channelBoxStates.size(); ++i) {
+                if(widgetsInfos.channelBoxStates[i]) {
+                    frameBody.channels.push_back(i + 1);
+                }
+            }
+            frameEncoder.AddToFrameBuffer(frameBody);
+            QString sendStr;
+            frameEncoder.GetOneFrame(sendStr);
+            qDebug() << sendStr;
+            uart->UartSend(sendStr);
         }
     } else {
         ui->startButton->setText("Start");  //stop
-        uart->uart_close();
+
+        FrameEncoder frameEncoder("$*", "*$");
+        FrameEncoder::FrameBody frameBody {};
+        frameBody.command = FrameEncoder::Stop;
+        frameBody.deviceType = FrameEncoder::Channel;
+        frameBody.payloadTime = 50;
+        for (int i = 0; i < widgetsInfos.channelBoxStates.size(); ++i) {
+            if(widgetsInfos.channelBoxStates[i]) {
+                frameBody.channels.push_back(i + 1);
+            }
+        }
+        frameEncoder.AddToFrameBuffer(frameBody);
+        QString sendStr;
+        frameEncoder.GetOneFrame(sendStr);
+        qDebug() << sendStr;
+        uart->UartSend(sendStr);
+        uart->UartClose();
         SetWidgetsDisabled(false);
     }
 }

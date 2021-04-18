@@ -78,14 +78,14 @@ protected:
     QVector<struct FrameData*> frameBuffer;
 };
 
-
 class Uart : public FrameDecoder {
     Q_OBJECT
 public:
     explicit Uart();
     ~Uart();
-    bool uart_open(const QString &port_name, const int &baud_rate, const int &data_bit, const int &stop_bit);
-    void uart_close();
+    bool UartOpen(const QString &port_name, const int &baud_rate, const int &data_bit, const int &stop_bit);
+    int UartSend(QString &sendStr);
+    void UartClose();
 
 private:
     FrameEncoder frameEncoder;
@@ -94,7 +94,7 @@ private:
     QByteArray uartBuffer;
 
 private slots:
-    void uart_read_ready();
+    void UartReadReadySlot();
 };
 
 

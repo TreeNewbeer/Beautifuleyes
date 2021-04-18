@@ -30,13 +30,14 @@ int FrameEncoder::AddToFrameBuffer(const FrameEncoder::FrameBody &frameBody)
     jsonRoot["time"] = frameBody.payloadTime;
     jsonRoot["cmd"] = frameBody.command;
     QJsonDocument jsonDocument(jsonRoot);
-    auto jsonString = new QString(jsonDocument.toJson(QJsonDocument::Compact));
+    auto jsonString = new QString(frameHead + jsonDocument.toJson(QJsonDocument::Compact) + frameTail);
     frameMutex.lock();
     frameBuffer.push_front(jsonString);
     frameMutex.unlock();
     return 0;
 }
 
+//$*{"type":1,"channels":[1,2,3,4],"time":50,"cmd":0}*$
 int FrameEncoder::GetOneFrame(QString &frameString)
 {
     frameMutex.lock();
@@ -127,7 +128,7 @@ Uart::~Uart() {
 
 }
 
-void Uart::uart_read_ready() {
+void Uart::UartReadReadySlot() {
     int bytes = serialPort.bytesAvailable();
     if (bytes <= 0) {
         return;
@@ -149,22 +150,29 @@ void Uart::uart_read_ready() {
     }
 }
 
-bool Uart::uart_open(const QString &port_name, const int &baud_rate, const int &data_bit, const int &stop_bit) {
-    connect(&serialPort, &QSerialPort::readyRead, this, &Uart::uart_read_ready, Qt::DirectConnection);
+bool Uart::UartOpen(const QString &port_name, const int &baud_rate, const int &data_bit, const int &stop_bit) {
+    connect(&serialPort, &QSerialPort::readyRead, this, &Uart::UartReadReadySlot, Qt::DirectConnection);
     serialPort.setPortName(port_name);
     serialPort.setBaudRate(baud_rate);
     serialPort.setDataBits((QSerialPort::DataBits)data_bit);
     serialPort.setStopBits((QSerialPort::StopBits)stop_bit);
     qDebug() << port_name << baud_rate  << Qt::endl;
-    bool ret = serialPort.open(QIODevice::ReadOnly);
+    bool ret = serialPort.open(QIODevice::ReadWrite);
     return ret;
 }
 
-void Uart::uart_close() {
-    disconnect(&serialPort, &QSerialPort::readyRead, this, &Uart::uart_read_ready);
+void Uart::UartClose() {
+    serialPort.waitForBytesWritten(-1);
+    disconnect(&serialPort, &QSerialPort::readyRead, this, &Uart::UartReadReadySlot);
     serialPort.close();
     uartBuffer.clear();
     frameMutex.lock();
     frameBuffer.clear();
     frameMutex.unlock();
+}
+
+int Uart::UartSend(QString &sendStr)
+{
+    int ret = serialPort.write(sendStr.toLocal8Bit().data());
+    return ret;
 }
